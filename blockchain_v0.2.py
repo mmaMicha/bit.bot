@@ -1,37 +1,45 @@
-
 import datetime
 import time
 import csv
 import json
 import urllib.request
 
+global tag_neu
+tag_neu = True
+global counter
+counter = 1
+global mod_time_day_last
+mod_time_day_last = -1
+
 class main():
     def __init__(self, *args, **kwargs):
-        self.tag_neu = True
-        self.counter = 1
         main.prog(self)
 
     def prog(self):
 
+        global tag_neu
+        global counter
+        global mod_time_day_last
+
         # HISTORICAL DATA HISTORICAL DATA HISTORICAL DATA HISTORICAL DATA HISTORICAL DATA HISTORICAL DATA HISTORICAL DATA HISTORICAL DATA
-        if self.tag_neu == True:
-            date_list = []
-            price_list = []
-            
-            # Datei holen
+        date_list = []
+        price_list = []
+        
+        # Datei holen
+        if tag_neu == True:
             urllib.request.urlretrieve('https://blockchain.info/charts/market-price?timespan=60days&format=csv', 'history.csv')
             
-            with open('history.csv') as csvfile:
-                readCSV = csv.reader(csvfile, delimiter=',')
-                for row in readCSV:
+        with open('history.csv') as csvfile:
+            readCSV = csv.reader(csvfile, delimiter=',')
+            for row in readCSV:
 
-                    date_str = str(row[0])
-                    #print(datetime.datetime.utcfromtimestamp(date_int))
-                    date_list.append(date_str)
+                date_str = str(row[0])
+                #print(datetime.datetime.utcfromtimestamp(date_int))
+                date_list.append(date_str)
 
-                    price_float = float(row[1])
-                    price_int = round(price_float,2)
-                    price_list.append(price_int)
+                price_float = float(row[1])
+                price_int = round(price_float,2)
+                price_list.append(price_int)
 
         # TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER TICKER
         with urllib.request.urlopen('https://blockchain.info/ticker') as url:
@@ -100,35 +108,49 @@ class main():
             ema_ema1_n1 = ema_ema1
             ema_ema2_n1 = ema_ema2
 
-        # write CSV file
-        self.tag_neu=False
-        with open('/Users/Micha/Documents/bitbot/bit.bot/history_kenner.csv', 'w') as writeCSV:
-            writer = csv.writer(writeCSV, dialect='excel')
-            
-            if self.tag_neu == True:
+        # CSV file mit Kenner wegschreiben
+        if tag_neu == False:
+            # erste komplett neu einlesen und dannach neu schreiben
+            with open('/Users/Micha/Documents/bitbot/bit.bot/history_kenner.csv') as csvfile:
+                readCSV = csv.reader(csvfile, delimiter=',')
+                write_array = []
+                for row in readCSV:
+                    write_array.append(row)
+            with open('/Users/Micha/Documents/bitbot/bit.bot/history_kenner.csv', 'w') as writeCSV:
+                writer = csv.writer(writeCSV, dialect='excel')
+                for row in write_array:
+                    writer.writerow(row)
+                write_array = date_list[60], price_list[60], ema1_array[60], ema_ema1_array[60], dema1_array[60], ema2_array[60], ema_ema2_array[60], dema2_array[60], dema_diff_array[60], result_array[60]
+                writer.writerow(write_array)
+
+        if tag_neu == True:
+            with open('/Users/Micha/Documents/bitbot/bit.bot/history_kenner.csv', 'w') as writeCSV:
+                writer = csv.writer(writeCSV, dialect='excel')
                 for row in zip(date_list, price_list, ema1_array, ema_ema1_array, dema1_array, ema2_array, ema_ema2_array, dema2_array, dema_diff_array, result_array):
                     writer.writerow(row)
                 tag_neu = False
-            
-            if self.tag_neu == False:
-                # erste komplett neu einlesen um dann neu zu schreiben
-                write_array = []
-                readCSV = csv.reader(writeCSV, delimiter=',')
-                for row in readCSV:
-                    write_array.append(row)
-                write_array.append = date_list[60], price_list[60], ema1_array[60], ema_ema1_array[60], dema1_array[60], ema2_array[60], ema_ema2_array[60], dema2_array[60], dema_diff_array[60], result_array[60]
-                writer.writerow(write_array)
-
-        # Ticker-Preis entfernen
-        price_list.pop(60)
-        self.counter += self.counter
-        if self.counter == 100: self.tag_neu = True
 
         # TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE TRADE
         # todo
-        print("Preis: ", price_last, "Result: ", result)
+        if result_array[59] == 0 and result == 1:
+            print("BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY BUY ")
+        if result_array[59] == 1 and result == 0:
+            print("SELL SELL SELL SELL SELL SELL SELL SELL SELL SELL SELL SELL SELL SELL SELL ")
+        price_diff = round(price_last - price_list[59], 2)
+        print(counter, " Diff:", price_diff, " -  Price_yesterday:", price_list[59], "Price:", price_last, " -  Result_yesterday:", result_array[59], "Result:", result)
 
+        # Bei neuem Tag:
+        time_day = time.time()
+        # ACHTUNG => UTC = GMT - 2
+        #mod_time_day = time_day % (60*60*24)
+        mod_time_day = time_day % (60) # aktuell jede Minute
+        if mod_time_day<mod_time_day_last:
+            tag_neu = True
+        mod_time_day_last = mod_time_day
+
+        counter += 1
         time.sleep(1.0)
+        main.prog(self)
 
 if __name__ == "__main__":
     main()
